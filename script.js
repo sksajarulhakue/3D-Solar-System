@@ -39,6 +39,9 @@ class SolarSystemSimulation {
             'year': 31556952  // Average year (365.25 days)
         };
 
+        // Validate time units on initialization
+        this.validateTimeUnits();
+
         // Mouse interaction
         this.mouse = new THREE.Vector2();
         this.raycaster = new THREE.Raycaster();
@@ -958,9 +961,13 @@ class SolarSystemSimulation {
 
             // Time-based speed change
             timeSelect.addEventListener('change', (e) => {
-                const timeUnit = e.target.value;
-                const speed = this.setPlanetTimeSpeed(index, timeUnit);
-                console.log(`${data.name} set to complete orbit in 1 ${timeUnit} (speed: ${speed.toFixed(6)})`);
+                try {
+                    const timeUnit = e.target.value;
+                    const speed = this.setPlanetTimeSpeed(index, timeUnit);
+                    console.log(`${data.name} set to complete orbit in 1 ${timeUnit} (speed: ${speed.toFixed(6)})`);
+                } catch (error) {
+                    console.error(`Error setting time-based speed for ${data.name}:`, error);
+                }
             });
 
             // Manual speed change
@@ -991,7 +998,13 @@ class SolarSystemSimulation {
             });
 
             // Initialize with realistic speed (1 year orbit)
-            this.setPlanetTimeSpeed(index, 'year');
+            try {
+                this.setPlanetTimeSpeed(index, 'year');
+            } catch (error) {
+                console.error(`Error initializing time-based speed for ${data.name}:`, error);
+                // Fallback to original speed
+                this.setPlanetSpeed(index, 1.0);
+            }
 
             planetControlsContainer.appendChild(controlDiv);
         });
@@ -1264,10 +1277,20 @@ class SolarSystemSimulation {
         }
     }
 
+    // Set planet speed to an absolute value (for time-based controls)
+    setPlanetAbsoluteSpeed(index, speed) {
+        if (this.planets[index]) {
+            this.planets[index].userData.currentSpeed = speed;
+        }
+    }
+
     // Calculate speed based on time unit for realistic orbital periods
     calculateTimeBasedSpeed(planetIndex, timeUnit) {
         const planetData = this.planetData[planetIndex];
-        if (!planetData) return 1.0;
+        if (!planetData || !this.timeUnits[timeUnit]) {
+            console.warn(`Invalid planet index ${planetIndex} or time unit ${timeUnit}`);
+            return 1.0;
+        }
 
         // Base calculation: how fast should the planet move to complete one orbit in the specified time
         const realOrbitalPeriodSeconds = planetData.orbitalPeriodDays * 86400; // Convert days to seconds
@@ -1278,16 +1301,46 @@ class SolarSystemSimulation {
         const speedMultiplier = realOrbitalPeriodSeconds / desiredPeriodSeconds;
 
         // Base speed adjustment for visual appeal (planets move at reasonable speeds)
-        const baseSpeed = 0.001; // Base orbital speed for visual appeal
+        // Clamp the speed to reasonable bounds to prevent performance issues
+        const baseSpeed = 0.002; // Slightly increased base speed for better visibility
+        const calculatedSpeed = baseSpeed * speedMultiplier;
 
-        return baseSpeed * speedMultiplier;
+        // Clamp speed between reasonable bounds
+        const minSpeed = 0.0001; // Minimum speed to ensure movement is visible
+        const maxSpeed = 10.0;   // Maximum speed to prevent performance issues
+
+        const finalSpeed = Math.max(minSpeed, Math.min(maxSpeed, calculatedSpeed));
+
+        return finalSpeed;
     }
 
     // Set planet speed using time-based units
     setPlanetTimeSpeed(planetIndex, timeUnit) {
         const speed = this.calculateTimeBasedSpeed(planetIndex, timeUnit);
-        this.setPlanetSpeed(planetIndex, speed);
+        this.setPlanetAbsoluteSpeed(planetIndex, speed);
         return speed;
+    }
+
+    // Validate time units configuration
+    validateTimeUnits() {
+        const requiredUnits = ['second', 'minute', 'hour', 'day', 'week', 'month', 'year'];
+        const missingUnits = requiredUnits.filter(unit => !this.timeUnits[unit]);
+
+        if (missingUnits.length > 0) {
+            console.error('Missing time units:', missingUnits);
+            return false;
+        }
+
+        // Validate that all values are positive numbers
+        for (const [unit, seconds] of Object.entries(this.timeUnits)) {
+            if (typeof seconds !== 'number' || seconds <= 0) {
+                console.error(`Invalid time unit value for ${unit}:`, seconds);
+                return false;
+            }
+        }
+
+        console.log('Time units validated successfully');
+        return true;
     }
 
     toggleOrbits(show) {
