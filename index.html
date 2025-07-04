@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Solar System Simulation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="solar-system-loader">
+                <div class="sun"></div>
+                <div class="planet planet-1"></div>
+                <div class="planet planet-2"></div>
+                <div class="planet planet-3"></div>
+            </div>
+            <h2>Loading Solar System...</h2>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <i class="fas fa-globe"></i>
+                    3D Solar System
+                </h1>
+                <div class="header-controls">
+                    <button id="theme-toggle" class="btn btn-icon" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="fullscreen-btn" class="btn btn-icon" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button id="info-btn" class="btn btn-icon" title="Information">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 3D Canvas Container -->
+        <div id="canvas-container">
+            <canvas id="solar-system-canvas"></canvas>
+            
+            <!-- Planet Info Tooltip -->
+            <div id="planet-tooltip" class="tooltip hidden">
+                <h3 id="tooltip-name"></h3>
+                <p id="tooltip-info"></p>
+                <div class="tooltip-stats">
+                    <div class="stat">
+                        <span class="stat-label">Distance from Sun:</span>
+                        <span id="tooltip-distance" class="stat-value"></span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Orbital Period:</span>
+                        <span id="tooltip-period" class="stat-value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Controls Info -->
+            <div id="camera-info" class="camera-info">
+                <div class="control-hint">
+                    <i class="fas fa-mouse"></i>
+                    <span>Left Click + Drag: Rotate</span>
+                </div>
+                <div class="control-hint">
+                    <i class="fas fa-mouse"></i>
+                    <span>Right Click + Drag: Pan</span>
+                </div>
+                <div class="control-hint">
+                    <i class="fas fa-mouse"></i>
+                    <span>Scroll: Zoom</span>
+                </div>
+                <div class="control-hint" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Adjust Camera Speed in control panel</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Toggle Button (works on all devices) -->
+        <button id="control-toggle-btn" class="control-toggle-btn" title="Toggle Controls">
+            <i class="fas fa-sliders-h"></i>
+            <span>Controls</span>
+        </button>
+
+        <!-- Simple Help Tooltip -->
+        <div id="help-tooltip" class="help-tooltip">
+            <div class="tooltip-content">
+                <p><strong>Controls:</strong> Use the floating "Controls" button to open/close the control panel</p>
+                <p><strong>Tip:</strong> You can also click the X button in the panel header to close it</p>
+                <button id="close-tooltip" class="btn btn-primary">Got it!</button>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div id="control-panel" class="control-panel">
+            <div class="panel-header">
+                <h2>
+                    <i class="fas fa-rocket"></i>
+                    Mission Control
+                </h2>
+                <button id="panel-toggle" class="btn btn-icon" title="Close Controls">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="panel-content">
+                <!-- Quick Actions -->
+                <div class="control-section">
+                    <h3><i class="fas fa-play-circle"></i> Quick Actions</h3>
+                    <div class="control-group">
+                        <button id="play-pause-btn" class="btn btn-primary">
+                            <i class="fas fa-pause"></i>
+                            <span>Pause</span>
+                        </button>
+                        <button id="reset-btn" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Speed Controls -->
+                <div class="control-section">
+                    <h3><i class="fas fa-tachometer-alt"></i> Speed Controls</h3>
+                    <div class="control-item">
+                        <label for="global-speed">
+                            <i class="fas fa-globe"></i>
+                            Global Speed
+                        </label>
+                        <div class="slider-container">
+                            <input type="range" id="global-speed" min="0" max="5" step="0.1" value="1">
+                            <span class="slider-value">1.0x</span>
+                        </div>
+                    </div>
+
+                    <div class="control-item">
+                        <label for="camera-speed">
+                            <i class="fas fa-video"></i>
+                            Camera Speed
+                        </label>
+                        <div class="slider-container">
+                            <input type="range" id="camera-speed" min="0.1" max="2" step="0.1" value="1">
+                            <span class="slider-value">1.0x</span>
+                        </div>
+                        <small id="camera-speed-status" class="status-text">Move the slider to test camera speed</small>
+                    </div>
+                </div>
+
+                <!-- Planet Controls -->
+                <div class="control-section collapsible">
+                    <h3 class="section-toggle">
+                        <i class="fas fa-planet-ringed"></i>
+                        Planet Controls
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </h3>
+                    <div class="section-content" id="planet-controls">
+                        <!-- Planet controls will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- View Options -->
+                <div class="control-section">
+                    <h3><i class="fas fa-eye"></i> View Options</h3>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="show-orbits" checked>
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">
+                                <i class="fas fa-circle-notch"></i>
+                                Orbit Paths
+                            </span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="show-labels" checked>
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">
+                                <i class="fas fa-tags"></i>
+                                Planet Labels
+                            </span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="show-stars" checked>
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">
+                                <i class="fas fa-star"></i>
+                                Stars
+                            </span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="show-trails" checked>
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">
+                                <i class="fas fa-route"></i>
+                                Planet Trails
+                            </span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="realistic-sizes">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-label">
+                                <i class="fas fa-ruler"></i>
+                                Realistic Sizes
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Modal -->
+        <div id="info-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>About This Solar System</h2>
+                    <button id="close-modal" class="btn btn-icon">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>This interactive 3D solar system simulation showcases all eight planets in our solar system with realistic orbital mechanics and beautiful visual effects.</p>
+                    
+                    <h3>Features:</h3>
+                    <ul>
+                        <li>Realistic planetary orbits and rotation speeds</li>
+                        <li>Individual speed controls for each planet</li>
+                        <li>Interactive camera controls</li>
+                        <li>Planet information tooltips</li>
+                        <li>Dark/Light theme toggle</li>
+                        <li>Responsive design for all devices</li>
+                    </ul>
+
+                    <h3>Controls:</h3>
+                    <ul>
+                        <li><strong>Mouse:</strong> Click and drag to rotate the view</li>
+                        <li><strong>Scroll:</strong> Zoom in and out</li>
+                        <li><strong>Right Click:</strong> Pan the camera</li>
+                        <li><strong>Control Panel:</strong> Adjust speeds and view options</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // Fallback for OrbitControls if not loaded
+        if (typeof THREE.OrbitControls === 'undefined') {
+            console.warn('OrbitControls not loaded, using fallback');
+            // Simple fallback implementation
+            THREE.OrbitControls = function(camera, domElement) {
+                this.object = camera;
+                this.domElement = domElement;
+                this.enabled = true;
+                this.enableDamping = true;
+                this.dampingFactor = 0.05;
+                this.enableZoom = true;
+                this.enableRotate = true;
+                this.enablePan = true;
+                this.rotateSpeed = 1.0;
+                this.zoomSpeed = 1.0;
+                this.panSpeed = 1.0;
+                this.minDistance = 0;
+                this.maxDistance = Infinity;
+                this.update = function() {};
+                this.dispose = function() {};
+            };
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
